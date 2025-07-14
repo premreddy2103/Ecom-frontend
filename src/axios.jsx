@@ -1,7 +1,10 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "https://ecom-project1-d49s.onrender.com/api",
 });
+
 delete API.defaults.headers.common["Authorization"];
+
 export default API;
+
