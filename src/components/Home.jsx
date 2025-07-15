@@ -2,27 +2,38 @@ import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AppContext from "../Context/Context";
 import unplugged from "../assets/unplugged.png";
+import axios from "axios";
 
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
   const [products, setProducts] = useState([]);
 
-  // Always refresh data when Home loads
   useEffect(() => {
     refreshData();
   }, [refreshData]);
 
   useEffect(() => {
-    if (data && data.length > 0) {
-      const updatedProducts = data.map((product) => {
-        let imageUrl = unplugged;
-        if (product.imageData) {
-          imageUrl = `data:${product.imageType};base64,${product.imageData}`;
-        }
-        return { ...product, imageUrl };
-      });
-      setProducts(updatedProducts);
-    }
+    const fetchImages = async () => {
+      if (data && data.length > 0) {
+        const updatedProducts = await Promise.all(
+          data.map(async (product) => {
+            try {
+              const res = await axios.get(
+                `https://ecom-project1-d49s.onrender.com/api/product/${product.id}/image`,
+                { responseType: "blob" }
+              );
+              const imageUrl = URL.createObjectURL(res.data);
+              return { ...product, imageUrl };
+            } catch (error) {
+              return { ...product, imageUrl: unplugged };
+            }
+          })
+        );
+        setProducts(updatedProducts);
+      }
+    };
+
+    fetchImages();
   }, [data]);
 
   const filteredProducts = selectedCategory
