@@ -13,15 +13,13 @@ const AddProduct = () => {
     releaseDate: "",
     productAvailable: false,
   });
+
   const [image, setImage] = useState(null);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setProduct({
-      ...product,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    setProduct({ ...product, [name]: type === "checkbox" ? checked : value });
   };
 
   const handleImageChange = (e) => {
@@ -48,73 +46,28 @@ const AddProduct = () => {
         navigate("/");
       })
       .catch((error) => {
-        console.error("Error adding product:", error);
         alert("Error adding product");
+        console.error(error);
       });
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Add Product</h2>
-      <form onSubmit={submitHandler} style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "400px" }}>
-        <input
-          type="text"
-          name="name"
-          placeholder="Product Name"
-          value={product.name}
-          onChange={handleInputChange}
-        />
-        <input
-          type="text"
-          name="brand"
-          placeholder="Brand"
-          value={product.brand}
-          onChange={handleInputChange}
-        />
-        <textarea
-          name="description"
-          placeholder="Description"
-          value={product.description}
-          onChange={handleInputChange}
-        />
-        <input
-          type="number"
-          name="price"
-          placeholder="Price"
-          value={product.price}
-          onChange={handleInputChange}
-        />
-        <input
-          type="text"
-          name="category"
-          placeholder="Category"
-          value={product.category}
-          onChange={handleInputChange}
-        />
-        <input
-          type="number"
-          name="stockQuantity"
-          placeholder="Stock Quantity"
-          value={product.stockQuantity}
-          onChange={handleInputChange}
-        />
-        <input
-          type="date"
-          name="releaseDate"
-          value={product.releaseDate}
-          onChange={handleInputChange}
-        />
-        <label>
-          Available:
-          <input
-            type="checkbox"
-            name="productAvailable"
-            checked={product.productAvailable}
-            onChange={handleInputChange}
-          />
-        </label>
-        <input type="file" onChange={handleImageChange} />
-        <button type="submit">Add Product</button>
+    <div className="max-w-2xl mx-auto p-6 shadow-lg rounded-lg mt-10 bg-white">
+      <h2 className="text-2xl font-bold mb-6">Add New Product</h2>
+      <form onSubmit={submitHandler} className="space-y-4">
+        <input name="name" placeholder="Name" onChange={handleInputChange} className="w-full border p-2" required />
+        <input name="brand" placeholder="Brand" onChange={handleInputChange} className="w-full border p-2" required />
+        <textarea name="description" placeholder="Description" onChange={handleInputChange} className="w-full border p-2" required />
+        <input name="price" placeholder="Price" type="number" onChange={handleInputChange} className="w-full border p-2" required />
+        <input name="category" placeholder="Category" onChange={handleInputChange} className="w-full border p-2" required />
+        <input name="stockQuantity" placeholder="Stock Quantity" type="number" onChange={handleInputChange} className="w-full border p-2" required />
+        <input name="releaseDate" placeholder="Release Date" type="date" onChange={handleInputChange} className="w-full border p-2" />
+        <div className="flex items-center">
+          <label className="mr-2">Available:</label>
+          <input type="checkbox" name="productAvailable" checked={product.productAvailable} onChange={handleInputChange} />
+        </div>
+        <input type="file" accept="image/*" onChange={handleImageChange} className="w-full border p-2" required />
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
       </form>
     </div>
   );
