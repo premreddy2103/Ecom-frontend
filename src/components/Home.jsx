@@ -6,14 +6,11 @@ import unplugged from "../assets/unplugged.png";
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
   const [products, setProducts] = useState([]);
-  const [isDataFetched, setIsDataFetched] = useState(false);
 
+  // Always refresh data when Home loads
   useEffect(() => {
-    if (!isDataFetched) {
-      refreshData();
-      setIsDataFetched(true);
-    }
-  }, [refreshData, isDataFetched]);
+    refreshData();
+  }, [refreshData]);
 
   useEffect(() => {
     if (data && data.length > 0) {
