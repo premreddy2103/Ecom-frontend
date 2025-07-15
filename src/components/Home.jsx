@@ -158,4 +158,3 @@ const Home = ({ selectedCategory }) => {
 };
 
 export default Home;
-

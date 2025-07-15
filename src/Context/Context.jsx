@@ -7,40 +7,41 @@ const AppContext = createContext({
   cart: [],
   addToCart: (product) => {},
   removeFromCart: (productId) => {},
-  refreshData:() =>{},
-  updateStockQuantity: (productId, newQuantity) =>{}
-  
+  refreshData: () => {},
+  clearCart: () => {},
+  updateStockQuantity: (productId, newQuantity) => {},
 });
 
 export const AppProvider = ({ children }) => {
   const [data, setData] = useState([]);
   const [isError, setIsError] = useState("");
-  const [cart, setCart] = useState(JSON.parse(localStorage.getItem('cart')) || []);
-
+  const [cart, setCart] = useState(JSON.parse(localStorage.getItem("cart")) || []);
 
   const addToCart = (product) => {
     const existingProductIndex = cart.findIndex((item) => item.id === product.id);
+    let updatedCart;
     if (existingProductIndex !== -1) {
-      const updatedCart = cart.map((item, index) =>
+      updatedCart = cart.map((item, index) =>
         index === existingProductIndex
           ? { ...item, quantity: item.quantity + 1 }
           : item
       );
-      setCart(updatedCart);
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
     } else {
-      const updatedCart = [...cart, { ...product, quantity: 1 }];
-      setCart(updatedCart);
-      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      updatedCart = [...cart, { ...product, quantity: 1 }];
     }
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
   const removeFromCart = (productId) => {
-    console.log("productID",productId)
     const updatedCart = cart.filter((item) => item.id !== productId);
     setCart(updatedCart);
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
-    console.log("CART",cart)
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    localStorage.setItem("cart", JSON.stringify([]));
   };
 
   const refreshData = async () => {
@@ -52,20 +53,40 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const clearCart =() =>{
-    setCart([]);
-  }
-  
+  const updateStockQuantity = (productId, newQuantity) => {
+    const updatedData = data.map((item) =>
+      item.id === productId ? { ...item, stockQuantity: newQuantity } : item
+    );
+    setData(updatedData);
+
+    const updatedCart = cart.map((item) =>
+      item.id === productId ? { ...item, stockQuantity: newQuantity } : item
+    );
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  };
+
   useEffect(() => {
     refreshData();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
+    localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
-  
+
   return (
-    <AppContext.Provider value={{ data, isError, cart, addToCart, removeFromCart,refreshData, clearCart  }}>
+    <AppContext.Provider
+      value={{
+        data,
+        isError,
+        cart,
+        addToCart,
+        removeFromCart,
+        refreshData,
+        clearCart,
+        updateStockQuantity, // ✅ this is now implemented
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

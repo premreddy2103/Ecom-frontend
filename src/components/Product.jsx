@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import AppContext from "../Context/Context";
-import axios from "../axios";
+import axios from "../axios"; // baseURL already set in axios.js
 import UpdateProduct from "./UpdateProduct";
 
 const Product = () => {
@@ -11,12 +11,10 @@ const Product = () => {
   const [imageUrl, setImageUrl] = useState("");
   const navigate = useNavigate();
 
-  const baseURL = "https://ecom-project1-d49s.onrender.com";
-
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/product/${id}`);
+        const response = await axios.get(`/product/${id}`);
         setProduct(response.data);
         if (response.data.imageName) {
           fetchImage();
@@ -27,10 +25,14 @@ const Product = () => {
     };
 
     const fetchImage = async () => {
-      const response = await axios.get(`${baseURL}/api/product/${id}/image`, {
-        responseType: "blob",
-      });
-      setImageUrl(URL.createObjectURL(response.data));
+      try {
+        const response = await axios.get(`/product/${id}/image`, {
+          responseType: "blob",
+        });
+        setImageUrl(URL.createObjectURL(response.data));
+      } catch (error) {
+        console.error("Error fetching image:", error);
+      }
     };
 
     fetchProduct();
@@ -38,7 +40,7 @@ const Product = () => {
 
   const deleteProduct = async () => {
     try {
-      await axios.delete(`${baseURL}/api/product/${id}`);
+      await axios.delete(`/product/${id}`);
       removeFromCart(id);
       alert("Product deleted successfully");
       refreshData();

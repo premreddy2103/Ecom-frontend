@@ -2,22 +2,26 @@ import React, { useContext, useState, useEffect } from "react";
 import AppContext from "../Context/Context";
 import axios from "axios";
 import CheckoutPopup from "./CheckoutPopup";
-import { Button } from 'react-bootstrap';
+import { Button } from "react-bootstrap";
 
 const Cart = () => {
   const { cart, removeFromCart, clearCart } = useContext(AppContext);
   const [cartItems, setCartItems] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [cartImage, setCartImage] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchImagesAndUpdateCart = async () => {
       try {
-        const response = await axios.get("https://ecom-project1-d49s.onrender.com/api/products");
+        const response = await axios.get(
+          "https://ecom-project1-d49s.onrender.com/api/products"
+        );
         const backendProductIds = response.data.map((product) => product.id);
 
-        const updatedCartItems = cart.filter((item) => backendProductIds.includes(item.id));
+        const updatedCartItems = cart.filter((item) =>
+          backendProductIds.includes(item.id)
+        );
+
         const cartItemsWithImages = await Promise.all(
           updatedCartItems.map(async (item) => {
             try {
@@ -25,13 +29,14 @@ const Cart = () => {
                 `https://ecom-project1-d49s.onrender.com/api/product/${item.id}/image`,
                 { responseType: "blob" }
               );
-              const imageFile = await converUrlToFile(response.data, response.data.imageName);
-              setCartImage(imageFile);
               const imageUrl = URL.createObjectURL(response.data);
-              return { ...item, imageUrl };
+              const imageFile = new File([response.data], `${item.id}.jpg`, {
+                type: response.data.type,
+              });
+              return { ...item, imageUrl, imageFile };
             } catch (error) {
               console.error("Error fetching image:", error);
-              return { ...item, imageUrl: "placeholder-image-url" };
+              return { ...item, imageUrl: "placeholder-image-url", imageFile: null };
             }
           })
         );
@@ -54,11 +59,6 @@ const Cart = () => {
     );
     setTotalPrice(total);
   }, [cartItems]);
-
-  const converUrlToFile = async (blobData, fileName) => {
-    const file = new File([blobData], fileName, { type: blobData.type });
-    return file;
-  };
 
   const handleIncreaseQuantity = (itemId) => {
     const newCartItems = cartItems.map((item) => {
@@ -92,16 +92,18 @@ const Cart = () => {
   const handleCheckout = async () => {
     try {
       for (const item of cartItems) {
-        const { imageUrl, imageName, imageData, imageType, quantity, ...rest } = item;
         const updatedStockQuantity = item.stockQuantity - item.quantity;
-
-        const updatedProductData = { ...rest, stockQuantity: updatedStockQuantity };
+        const updatedProductData = { ...item, stockQuantity: updatedStockQuantity };
 
         const cartProduct = new FormData();
-        cartProduct.append("imageFile", cartImage);
+        if (item.imageFile) {
+          cartProduct.append("imageFile", item.imageFile);
+        }
         cartProduct.append(
           "product",
-          new Blob([JSON.stringify(updatedProductData)], { type: "application/json" })
+          new Blob([JSON.stringify(updatedProductData)], {
+            type: "application/json",
+          })
         );
 
         await axios.put(
@@ -114,11 +116,12 @@ const Cart = () => {
           }
         );
       }
+
       clearCart();
       setCartItems([]);
       setShowModal(false);
     } catch (error) {
-      console.log("error during checkout", error);
+      console.error("Error during checkout", error);
     }
   };
 
@@ -134,7 +137,10 @@ const Cart = () => {
           <>
             {cartItems.map((item) => (
               <li key={item.id} className="cart-item">
-                <div className="item" style={{ display: "flex", alignContent: "center" }}>
+                <div
+                  className="item"
+                  style={{ display: "flex", alignItems: "center" }}
+                >
                   <div>
                     <img
                       src={item.imageUrl}
@@ -186,6 +192,7 @@ const Cart = () => {
           </>
         )}
       </div>
+
       <CheckoutPopup
         show={showModal}
         handleClose={() => setShowModal(false)}
