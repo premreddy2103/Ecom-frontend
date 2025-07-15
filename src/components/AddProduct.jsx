@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "./AddProduct.css"; // make sure this CSS file exists
 
 const AddProduct = () => {
   const [product, setProduct] = useState({
@@ -19,15 +20,17 @@ const AddProduct = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setProduct({ ...product, [name]: type === "checkbox" ? checked : value });
+    const val = type === "checkbox" ? checked : value;
+    setProduct({ ...product, [name]: val });
   };
 
   const handleImageChange = (e) => {
     setImage(e.target.files[0]);
   };
 
-  const submitHandler = (event) => {
-    event.preventDefault();
+  const submitHandler = (e) => {
+    e.preventDefault();
+
     const formData = new FormData();
     formData.append("imageFile", image);
     formData.append(
@@ -41,33 +44,77 @@ const AddProduct = () => {
           "Content-Type": "multipart/form-data",
         },
       })
-      .then((response) => {
+      .then((res) => {
         alert("Product added successfully");
         navigate("/");
       })
-      .catch((error) => {
+      .catch((err) => {
+        console.error("Error adding product:", err);
         alert("Error adding product");
-        console.error(error);
       });
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 shadow-lg rounded-lg mt-10 bg-white">
-      <h2 className="text-2xl font-bold mb-6">Add New Product</h2>
-      <form onSubmit={submitHandler} className="space-y-4">
-        <input name="name" placeholder="Name" onChange={handleInputChange} className="w-full border p-2" required />
-        <input name="brand" placeholder="Brand" onChange={handleInputChange} className="w-full border p-2" required />
-        <textarea name="description" placeholder="Description" onChange={handleInputChange} className="w-full border p-2" required />
-        <input name="price" placeholder="Price" type="number" onChange={handleInputChange} className="w-full border p-2" required />
-        <input name="category" placeholder="Category" onChange={handleInputChange} className="w-full border p-2" required />
-        <input name="stockQuantity" placeholder="Stock Quantity" type="number" onChange={handleInputChange} className="w-full border p-2" required />
-        <input name="releaseDate" placeholder="Release Date" type="date" onChange={handleInputChange} className="w-full border p-2" />
-        <div className="flex items-center">
-          <label className="mr-2">Available:</label>
-          <input type="checkbox" name="productAvailable" checked={product.productAvailable} onChange={handleInputChange} />
+    <div className="add-product-container">
+      <form onSubmit={submitHandler} className="add-product-form">
+        <div className="form-row">
+          <div>
+            <label>Name</label>
+            <input type="text" name="name" value={product.name} onChange={handleInputChange} required />
+          </div>
+          <div>
+            <label>Brand</label>
+            <input type="text" name="brand" value={product.brand} onChange={handleInputChange} required />
+          </div>
         </div>
-        <input type="file" accept="image/*" onChange={handleImageChange} className="w-full border p-2" required />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
+
+        <div className="form-row full-width">
+          <label>Description</label>
+          <input type="text" name="description" value={product.description} onChange={handleInputChange} required />
+        </div>
+
+        <div className="form-row">
+          <div>
+            <label>Price</label>
+            <input type="number" name="price" value={product.price} onChange={handleInputChange} required />
+          </div>
+          <div>
+            <label>Category</label>
+            <select name="category" value={product.category} onChange={handleInputChange} required>
+              <option value="">Select category</option>
+              <option value="Mobile">Mobile</option>
+              <option value="Laptop">Laptop</option>
+              <option value="Watch">Watch</option>
+              <option value="TV">TV</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div>
+            <label>Stock Quantity</label>
+            <input type="number" name="stockQuantity" value={product.stockQuantity} onChange={handleInputChange} required />
+          </div>
+          <div>
+            <label>Release Date</label>
+            <input type="date" name="releaseDate" value={product.releaseDate} onChange={handleInputChange} required />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div>
+            <label>Image</label>
+            <input type="file" onChange={handleImageChange} accept="image/*" required />
+          </div>
+          <div className="checkbox-field">
+            <label>
+              <input type="checkbox" name="productAvailable" checked={product.productAvailable} onChange={handleInputChange} />
+              Product Available
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" className="submit-btn">Submit</button>
       </form>
     </div>
   );
