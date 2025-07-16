@@ -6,15 +6,19 @@ import axios from "axios";
 
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
-  const [products, setProducts] = useState([]);
+  const [productsWithImages, setProductsWithImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    refreshData();
+    refreshData(); // refresh product list from backend
   }, [refreshData]);
 
   useEffect(() => {
     const fetchImages = async () => {
-      if (data && data.length > 0) {
+      if (!data || data.length === 0) return;
+
+      setIsLoading(true);
+      try {
         const updatedProducts = await Promise.all(
           data.map(async (product) => {
             try {
@@ -24,12 +28,16 @@ const Home = ({ selectedCategory }) => {
               );
               const imageUrl = URL.createObjectURL(res.data);
               return { ...product, imageUrl };
-            } catch (error) {
+            } catch (err) {
               return { ...product, imageUrl: unplugged };
             }
           })
         );
-        setProducts(updatedProducts);
+        setProductsWithImages(updatedProducts);
+      } catch (err) {
+        console.error("Error loading images", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -37,13 +45,21 @@ const Home = ({ selectedCategory }) => {
   }, [data]);
 
   const filteredProducts = selectedCategory
-    ? products.filter((product) => product.category === selectedCategory)
-    : products;
+    ? productsWithImages.filter((product) => product.category === selectedCategory)
+    : productsWithImages;
 
   if (isError) {
     return (
       <h2 className="text-center" style={{ padding: "18rem" }}>
         <img src={unplugged} alt="Error" style={{ width: "100px", height: "100px" }} />
+      </h2>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <h2 className="text-center" style={{ padding: "18rem" }}>
+        Loading products...
       </h2>
     );
   }
@@ -60,16 +76,7 @@ const Home = ({ selectedCategory }) => {
       }}
     >
       {filteredProducts.length === 0 ? (
-        <h2
-          className="text-center"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          No Products Available
-        </h2>
+        <h2 className="text-center">No Products Available</h2>
       ) : (
         filteredProducts.map((product) => {
           const { id, brand, name, price, productAvailable, imageUrl } = product;
@@ -95,7 +102,7 @@ const Home = ({ selectedCategory }) => {
                 style={{ textDecoration: "none", color: "inherit" }}
               >
                 <img
-                  src={imageUrl}
+                  src={imageUrl || unplugged}
                   alt={name}
                   style={{
                     width: "100%",
@@ -103,7 +110,7 @@ const Home = ({ selectedCategory }) => {
                     objectFit: "cover",
                     padding: "5px",
                     margin: "0",
-                    borderRadius: "10px 10px 10px 10px",
+                    borderRadius: "10px 10px 0 0",
                   }}
                 />
                 <div
@@ -117,36 +124,20 @@ const Home = ({ selectedCategory }) => {
                   }}
                 >
                   <div>
-                    <h5
-                      className="card-title"
-                      style={{ margin: "0 0 10px 0", fontSize: "1.2rem" }}
-                    >
+                    <h5 className="card-title" style={{ marginBottom: "10px", fontSize: "1.2rem" }}>
                       {name.toUpperCase()}
                     </h5>
-                    <i
-                      className="card-brand"
-                      style={{ fontStyle: "italic", fontSize: "0.8rem" }}
-                    >
-                      {"~ " + brand}
-                    </i>
+                    <i style={{ fontStyle: "italic", fontSize: "0.8rem" }}>~ {brand}</i>
                   </div>
-                  <hr className="hr-line" style={{ margin: "10px 0" }} />
-                  <div className="home-cart-price">
-                    <h5
-                      className="card-text"
-                      style={{
-                        fontWeight: "600",
-                        fontSize: "1.1rem",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      <i className="bi bi-currency-rupee"></i>
-                      {price}
+                  <hr />
+                  <div>
+                    <h5 className="card-text" style={{ fontWeight: "600", fontSize: "1.1rem" }}>
+                      ₹{price}
                     </h5>
                   </div>
                   <button
                     className="btn-hover color-9"
-                    style={{ margin: "10px 25px 0px" }}
+                    style={{ marginTop: "10px" }}
                     onClick={(e) => {
                       e.preventDefault();
                       addToCart(product);

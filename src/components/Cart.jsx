@@ -13,42 +13,43 @@ const Cart = () => {
   useEffect(() => {
     const fetchImagesAndUpdateCart = async () => {
       try {
-        const response = await axios.get(
-          "https://ecom-project1-d49s.onrender.com/api/products"
-        );
-        const backendProductIds = response.data.map((product) => product.id);
+        const updatedCartItems = await Promise.all(
+          cart.map(async (item) => {
+            let imageUrl = "";
+            let imageFile = null;
 
-        const updatedCartItems = cart.filter((item) =>
-          backendProductIds.includes(item.id)
-        );
-
-        const cartItemsWithImages = await Promise.all(
-          updatedCartItems.map(async (item) => {
             try {
               const response = await axios.get(
                 `https://ecom-project1-d49s.onrender.com/api/product/${item.id}/image`,
                 { responseType: "blob" }
               );
-              const imageUrl = URL.createObjectURL(response.data);
-              const imageFile = new File([response.data], `${item.id}.jpg`, {
+              imageUrl = URL.createObjectURL(response.data);
+              imageFile = new File([response.data], `${item.id}.jpg`, {
                 type: response.data.type,
               });
-              return { ...item, imageUrl, imageFile };
             } catch (error) {
-              console.error("Error fetching image:", error);
-              return { ...item, imageUrl: "placeholder-image-url", imageFile: null };
+              console.error("Image fetch failed:", error);
+              imageUrl = "/fallback.jpg"; // fallback image if needed
             }
+
+            return {
+              ...item,
+              imageUrl,
+              imageFile,
+              quantity: item.quantity || 1,
+            };
           })
         );
-
-        setCartItems(cartItemsWithImages);
+        setCartItems(updatedCartItems);
       } catch (error) {
-        console.error("Error fetching product data:", error);
+        console.error("Cart fetch error:", error);
       }
     };
 
-    if (cart.length) {
+    if (cart.length > 0) {
       fetchImagesAndUpdateCart();
+    } else {
+      setCartItems([]);
     }
   }, [cart]);
 
@@ -61,54 +62,52 @@ const Cart = () => {
   }, [cartItems]);
 
   const handleIncreaseQuantity = (itemId) => {
-    const newCartItems = cartItems.map((item) => {
-      if (item.id === itemId) {
-        if (item.quantity < item.stockQuantity) {
-          return { ...item, quantity: item.quantity + 1 };
-        } else {
-          alert("Cannot add more than available stock");
-        }
-      }
-      return item;
-    });
-    setCartItems(newCartItems);
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId && item.quantity < item.stockQuantity
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    );
   };
 
   const handleDecreaseQuantity = (itemId) => {
-    const newCartItems = cartItems.map((item) =>
-      item.id === itemId
-        ? { ...item, quantity: Math.max(item.quantity - 1, 1) }
-        : item
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? { ...item, quantity: Math.max(1, item.quantity - 1) }
+          : item
+      )
     );
-    setCartItems(newCartItems);
   };
 
   const handleRemoveFromCart = (itemId) => {
     removeFromCart(itemId);
-    const newCartItems = cartItems.filter((item) => item.id !== itemId);
-    setCartItems(newCartItems);
+    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const handleCheckout = async () => {
     try {
       for (const item of cartItems) {
-        const updatedStockQuantity = item.stockQuantity - item.quantity;
-        const updatedProductData = { ...item, stockQuantity: updatedStockQuantity };
+        const updatedProduct = {
+          ...item,
+          stockQuantity: item.stockQuantity - item.quantity,
+        };
 
-        const cartProduct = new FormData();
+        const formData = new FormData();
         if (item.imageFile) {
-          cartProduct.append("imageFile", item.imageFile);
+          formData.append("imageFile", item.imageFile);
         }
-        cartProduct.append(
+        formData.append(
           "product",
-          new Blob([JSON.stringify(updatedProductData)], {
+          new Blob([JSON.stringify(updatedProduct)], {
             type: "application/json",
           })
         );
 
         await axios.put(
           `https://ecom-project1-d49s.onrender.com/api/product/${item.id}`,
-          cartProduct,
+          formData,
           {
             headers: {
               "Content-Type": "multipart/form-data",
@@ -121,69 +120,60 @@ const Cart = () => {
       setCartItems([]);
       setShowModal(false);
     } catch (error) {
-      console.error("Error during checkout", error);
+      console.error("Checkout error:", error);
     }
   };
 
   return (
     <div className="cart-container">
       <div className="shopping-cart">
-        <div className="title">Shopping Bag</div>
+        <div className="title">Shopping Cart</div>
         {cartItems.length === 0 ? (
-          <div className="empty" style={{ textAlign: "left", padding: "2rem" }}>
+          <div style={{ padding: "2rem", textAlign: "center" }}>
             <h4>Your cart is empty</h4>
           </div>
         ) : (
           <>
-            {cartItems.map((item) => (
-              <li key={item.id} className="cart-item">
-                <div
-                  className="item"
-                  style={{ display: "flex", alignItems: "center" }}
-                >
-                  <div>
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              {cartItems.map((item) => (
+                <li key={item.id} className="cart-item">
+                  <div className="item" style={{ display: "flex", alignItems: "center" }}>
                     <img
                       src={item.imageUrl}
                       alt={item.name}
-                      className="cart-item-image"
+                      style={{ width: "80px", height: "80px", objectFit: "cover", marginRight: "1rem" }}
                     />
-                  </div>
-                  <div className="description">
-                    <span>{item.brand}</span>
-                    <span>{item.name}</span>
-                  </div>
-                  <div className="quantity">
+                    <div style={{ flex: 1 }}>
+                      <h6>{item.brand}</h6>
+                      <p>{item.name}</p>
+                    </div>
+                    <div className="quantity" style={{ display: "flex", alignItems: "center" }}>
+                      <button onClick={() => handleDecreaseQuantity(item.id)}>
+                        <i className="bi bi-dash-square-fill"></i>
+                      </button>
+                      <span style={{ margin: "0 10px" }}>{item.quantity}</span>
+                      <button onClick={() => handleIncreaseQuantity(item.id)}>
+                        <i className="bi bi-plus-square-fill"></i>
+                      </button>
+                    </div>
+                    <div style={{ margin: "0 1rem", fontWeight: "bold" }}>
+                      ₹{item.price * item.quantity}
+                    </div>
                     <button
-                      className="plus-btn"
-                      type="button"
-                      onClick={() => handleIncreaseQuantity(item.id)}
+                      className="remove-btn"
+                      onClick={() => handleRemoveFromCart(item.id)}
                     >
-                      <i className="bi bi-plus-square-fill"></i>
-                    </button>
-                    <input type="button" value={item.quantity} readOnly />
-                    <button
-                      className="minus-btn"
-                      type="button"
-                      onClick={() => handleDecreaseQuantity(item.id)}
-                    >
-                      <i className="bi bi-dash-square-fill"></i>
+                      <i className="bi bi-trash-fill"></i>
                     </button>
                   </div>
-                  <div className="total-price" style={{ textAlign: "center" }}>
-                    ${item.price * item.quantity}
-                  </div>
-                  <button
-                    className="remove-btn"
-                    onClick={() => handleRemoveFromCart(item.id)}
-                  >
-                    <i className="bi bi-trash3-fill"></i>
-                  </button>
-                </div>
-              </li>
-            ))}
-            <div className="total">Total: ${totalPrice}</div>
+                </li>
+              ))}
+            </ul>
+            <div className="total" style={{ padding: "1rem 0", fontWeight: "bold" }}>
+              Total: ₹{totalPrice}
+            </div>
             <Button
-              className="btn btn-primary"
+              className="btn btn-success"
               style={{ width: "100%" }}
               onClick={() => setShowModal(true)}
             >

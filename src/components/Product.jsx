@@ -1,60 +1,57 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import AppContext from "../Context/Context";
-import axios from "../axios"; // baseURL already set in axios.js
-import UpdateProduct from "./UpdateProduct";
+import axios from "../axios"; // axios with baseURL configured
+import unplugged from "../assets/unplugged.png";
 
 const Product = () => {
   const { id } = useParams();
-  const { data, addToCart, removeFromCart, cart, refreshData } = useContext(AppContext);
+  const { addToCart, removeFromCart, refreshData } = useContext(AppContext);
   const [product, setProduct] = useState(null);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState(unplugged);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchProductDetails = async () => {
       try {
-        const response = await axios.get(`/product/${id}`);
-        setProduct(response.data);
-        if (response.data.imageName) {
-          fetchImage();
-        }
-      } catch (error) {
-        console.error("Error fetching product:", error);
+        const res = await axios.get(`/product/${id}`);
+        setProduct(res.data);
+        fetchImage(res.data.id);
+      } catch (err) {
+        console.error("Error fetching product:", err);
       }
     };
 
-    const fetchImage = async () => {
+    const fetchImage = async (productId) => {
       try {
-        const response = await axios.get(`/product/${id}/image`, {
+        const res = await axios.get(`/product/${productId}/image`, {
           responseType: "blob",
         });
-        setImageUrl(URL.createObjectURL(response.data));
-      } catch (error) {
-        console.error("Error fetching image:", error);
+        setImageUrl(URL.createObjectURL(res.data));
+      } catch (err) {
+        console.warn("Image not found, using default.");
+        setImageUrl(unplugged);
       }
     };
 
-    fetchProduct();
+    fetchProductDetails();
   }, [id]);
 
   const deleteProduct = async () => {
     try {
       await axios.delete(`/product/${id}`);
       removeFromCart(id);
-      alert("Product deleted successfully");
       refreshData();
+      alert("Product deleted successfully");
       navigate("/");
-    } catch (error) {
-      console.error("Error deleting product:", error);
+    } catch (err) {
+      console.error("Error deleting product:", err);
     }
   };
 
-  const handleEditClick = () => {
-    navigate(`/product/update/${id}`);
-  };
+  const handleEditClick = () => navigate(`/product/update/${id}`);
 
-  const handlAddToCart = () => {
+  const handleAddToCart = () => {
     addToCart(product);
     alert("Product added to cart");
   };
@@ -62,87 +59,71 @@ const Product = () => {
   if (!product) {
     return (
       <h2 className="text-center" style={{ padding: "10rem" }}>
-        Loading...
+        Loading product details...
       </h2>
     );
   }
 
   return (
-    <div className="containers" style={{ display: "flex" }}>
+    <div className="containers" style={{ display: "flex", padding: "2rem" }}>
       <img
-        className="left-column-img"
         src={imageUrl}
-        alt={product.imageName}
-        style={{ width: "50%", height: "auto" }}
+        alt={product.name}
+        style={{ width: "50%", height: "auto", objectFit: "cover", borderRadius: "8px" }}
       />
-      <div className="right-column" style={{ width: "50%" }}>
+
+      <div className="right-column" style={{ width: "50%", paddingLeft: "2rem" }}>
         <div className="product-description">
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: "1.2rem", fontWeight: "lighter" }}>
-              {product.category}
-            </span>
-            <p className="release-date" style={{ marginBottom: "2rem" }}>
-              <h6>
-                Listed:{" "}
-                <span>
-                  <i>{new Date(product.releaseDate).toLocaleDateString()}</i>
-                </span>
-              </h6>
-            </p>
+            <span style={{ fontSize: "1rem", fontWeight: "lighter" }}>{product.category}</span>
+            <h6 style={{ fontSize: "0.9rem", fontStyle: "italic" }}>
+              Listed: {new Date(product.releaseDate).toLocaleDateString()}
+            </h6>
           </div>
 
-          <h1
-            style={{
-              fontSize: "2rem",
-              marginBottom: "0.5rem",
-              textTransform: "capitalize",
-              letterSpacing: "1px",
-            }}
-          >
+          <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem", textTransform: "capitalize" }}>
             {product.name}
           </h1>
-          <i style={{ marginBottom: "3rem" }}>{product.brand}</i>
-          <p style={{ fontWeight: "bold", fontSize: "1rem", margin: "10px 0px 0px" }}>
-            PRODUCT DESCRIPTION :
-          </p>
+          <i style={{ fontSize: "1rem", color: "#555" }}>~ {product.brand}</i>
+
+          <p style={{ fontWeight: "bold", marginTop: "1rem" }}>PRODUCT DESCRIPTION:</p>
           <p style={{ marginBottom: "1rem" }}>{product.description}</p>
         </div>
 
         <div className="product-price">
-          <span style={{ fontSize: "2rem", fontWeight: "bold" }}>
-            {"$" + product.price}
+          <span style={{ fontSize: "1.8rem", fontWeight: "bold", color: "#333" }}>
+            ₹{product.price}
           </span>
+
           <button
             className={`cart-btn ${!product.productAvailable ? "disabled-btn" : ""}`}
-            onClick={handlAddToCart}
+            onClick={handleAddToCart}
             disabled={!product.productAvailable}
             style={{
-              padding: "1rem 2rem",
+              padding: "0.8rem 2rem",
               fontSize: "1rem",
-              backgroundColor: "#007bff",
+              backgroundColor: product.productAvailable ? "#007bff" : "#ccc",
               color: "white",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer",
-              marginBottom: "1rem",
+              cursor: product.productAvailable ? "pointer" : "not-allowed",
+              marginTop: "1rem",
             }}
           >
-            {product.productAvailable ? "Add to cart" : "Out of Stock"}
+            {product.productAvailable ? "Add to Cart" : "Out of Stock"}
           </button>
-          <h6 style={{ marginBottom: "1rem" }}>
+
+          <h6 style={{ marginTop: "1rem" }}>
             Stock Available:{" "}
             <i style={{ color: "green", fontWeight: "bold" }}>{product.stockQuantity}</i>
           </h6>
         </div>
 
-        <div className="update-button" style={{ display: "flex", gap: "1rem" }}>
+        <div className="update-button" style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
           <button
-            className="btn btn-primary"
-            type="button"
             onClick={handleEditClick}
             style={{
-              padding: "1rem 2rem",
-              fontSize: "1rem",
+              padding: "0.8rem 2rem",
               backgroundColor: "#007bff",
               color: "white",
               border: "none",
@@ -152,13 +133,11 @@ const Product = () => {
           >
             Update
           </button>
+
           <button
-            className="btn btn-primary"
-            type="button"
             onClick={deleteProduct}
             style={{
-              padding: "1rem 2rem",
-              fontSize: "1rem",
+              padding: "0.8rem 2rem",
               backgroundColor: "#dc3545",
               color: "white",
               border: "none",
